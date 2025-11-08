@@ -1,0 +1,101 @@
+name: Build and Release ReTADI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: ReTADI.AppImage
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: ReTADI.exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: ReTADI.zip
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # --- Linux AppImage Build ---
+      - name: Install AppImage tool (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt update
+          sudo apt install -y appimagetool
+          mkdir -p AppDir/usr/bin
+          cp target/${{ matrix.target }}/release/retadi-server AppDir/usr/bin/ReTADI
+          appimagetool AppDir ${{ matrix.artifact }}
+
+      # --- Windows packaging ---
+      - name: Rename Windows binary
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir dist
+          copy target\release\retadi-server.exe dist\ReTADI.exe
+
+      # --- macOS packaging ---
+      - name: Zip macOS binary
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir dist
+          cp target/${{ matrix.target }}/release/retadi-server dist/ReTADI
+          cd dist && zip -r ../${{ matrix.artifact }} ReTADI
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}
+            dist/**/*.exe
+            dist/**/*.zip
+
+  release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "ReTADI ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.zip
+            artifacts/**/*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
