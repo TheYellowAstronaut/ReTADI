@@ -6,7 +6,7 @@ An **[open source*](#license)** and **web-based** software with a **Rust-powered
 
 There are a few ways to install ReTADI server. The tablet (client device) doesn't require installation of software (except a web browser, ofc).
 
-### 1] Download pre-built binaries. (Recommended)
+### 1] Download installers and pre-built binaries. (Recommended)
 
 Visit our website to download them. [Visit↗]
 
