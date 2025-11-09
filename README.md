@@ -12,7 +12,7 @@ Visit our website to download them. [Visit↗]
 
 OR
 
-Download it via the [releases tab](https://github.com/theyellowastronaut/retadi/releases) of this repository.
+Download them via the [releases tab](https://github.com/theyellowastronaut/retadi/releases) of this repository.
 
 ### 2] Build from source
 
